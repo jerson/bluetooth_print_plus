@@ -322,8 +322,12 @@ public class BluetoothPrintPlusPlugin
 
                     @Override
                     public void onSuccess(PrinterDevices printerDevices) {
-                      // LogUtils.d(TAG, "onSuccess");
-                      sink.success(BPPState.DeviceConnected.getValue());
+                      LogUtils.d(TAG, "connect onSuccess, sink=" + (sink != null));
+                      if (sink != null) {
+                        sink.success(BPPState.DeviceConnected.getValue());
+                      } else {
+                        LogUtils.w(TAG, "connect onSuccess skipped because sink is null");
+                      }
                     }
 
                     @Override
@@ -340,8 +344,12 @@ public class BluetoothPrintPlusPlugin
 
                     @Override
                     public void onDisconnect() {
-                      // LogUtils.d(TAG, "onDisconnect");
-                      sink.success(BPPState.DeviceDisconnected.getValue());
+                      LogUtils.d(TAG, "connect onDisconnect, sink=" + (sink != null));
+                      if (sink != null) {
+                        sink.success(BPPState.DeviceDisconnected.getValue());
+                      } else {
+                        LogUtils.w(TAG, "connect onDisconnect skipped because sink is null");
+                      }
                     }
                   })
                   .build();
@@ -362,11 +370,16 @@ public class BluetoothPrintPlusPlugin
   public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
     LogUtils.d(TAG, "onRequestPermissionsResult");
     if (requestCode == REQUEST_LOCATION_PERMISSIONS) {
-      if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+      if (grantResults != null && grantResults.length > 0 &&
+          grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        LogUtils.d(TAG, "permission granted, starting scan");
         startScan();
       } else {
-        pendingResult.error("no_permissions", "this plugin requires location permissions for scanning", null);
-        pendingResult = null;
+        LogUtils.w(TAG, "permission denied or empty grantResults; pendingResult=" + (pendingResult != null));
+        if (pendingResult != null) {
+          pendingResult.error("no_permissions", "this plugin requires location permissions for scanning", null);
+          pendingResult = null;
+        }
       }
       return true;
     }
