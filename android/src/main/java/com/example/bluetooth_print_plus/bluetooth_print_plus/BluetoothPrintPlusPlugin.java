@@ -249,26 +249,32 @@ public class BluetoothPrintPlusPlugin
   private void startScan(Result result) {
     LogUtils.i(TAG, "start scan...");
     try {
-      String[] perms = {
-          Manifest.permission.BLUETOOTH,
-          Manifest.permission.BLUETOOTH_ADMIN,
-          Manifest.permission.BLUETOOTH_CONNECT,
-          Manifest.permission.BLUETOOTH_SCAN,
-          Manifest.permission.ACCESS_FINE_LOCATION,
-      };
+      String[] perms;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        perms = new String[] {
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_SCAN,
+        };
+      } else {
+        perms = new String[] {
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        };
+      }
       if (EasyPermissions.hasPermissions(this.context, perms)) {
         // Already have permission, do the thing
         startScan();
+        result.success(null);
       } else {
         // Do not have permissions, request them now
+        pendingResult = result;
         EasyPermissions.requestPermissions(
                 this.activity,
                 "Bluetooth requires location permission!!!",
                 REQUEST_LOCATION_PERMISSIONS,
                 perms);
       }
-      result.success(null);
     } catch (Exception e) {
+      pendingResult = null;
       result.error("startScan", e.getMessage(), e);
     }
   }
@@ -370,10 +376,30 @@ public class BluetoothPrintPlusPlugin
   public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
     LogUtils.d(TAG, "onRequestPermissionsResult");
     if (requestCode == REQUEST_LOCATION_PERMISSIONS) {
-      if (grantResults != null && grantResults.length > 0 &&
-          grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+      boolean granted = grantResults != null && grantResults.length > 0;
+      if (granted) {
+        for (int grantResult : grantResults) {
+          if (grantResult != PackageManager.PERMISSION_GRANTED) {
+            granted = false;
+            break;
+          }
+        }
+      }
+
+      if (granted) {
         LogUtils.d(TAG, "permission granted, starting scan");
-        startScan();
+        try {
+          startScan();
+          if (pendingResult != null) {
+            pendingResult.success(null);
+          }
+        } catch (Exception e) {
+          if (pendingResult != null) {
+            pendingResult.error("startScan", e.getMessage(), e);
+          }
+        } finally {
+          pendingResult = null;
+        }
       } else {
         LogUtils.w(TAG, "permission denied or empty grantResults; pendingResult=" + (pendingResult != null));
         if (pendingResult != null) {
