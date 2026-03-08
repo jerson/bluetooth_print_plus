@@ -122,6 +122,7 @@ class BluetoothPrintPlus {
   /// The `connect` method returns immediately, and the connection status
   /// is reported on the `connectState` stream.
   static Future<dynamic> connect(BluetoothDevice device) async {
+    await _initFlutterBluePlus();
     await _methodChannel.invokeMethod('connect', device.toJson());
   }
 
@@ -133,6 +134,7 @@ class BluetoothPrintPlus {
   ///
   /// Returns a `Future` that completes when the disconnection process is finished.
   static Future<dynamic> disconnect() async {
+    await _initFlutterBluePlus();
     await _methodChannel.invokeMethod('disconnect');
   }
 
@@ -145,6 +147,7 @@ class BluetoothPrintPlus {
   ///
   /// Returns a `Future` that completes when the write operation is finished.
   static Future<dynamic> write(Uint8List? data) async {
+    await _initFlutterBluePlus();
     await _methodChannel.invokeMethod('write', {"data": data});
   }
 
